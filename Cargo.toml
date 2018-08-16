@@ -1,0 +1,10 @@
+[package]
+name = "tutorial"
+version = "0.1.0"
+authors = ["Elkantor <vic03@live.fr>"]
+
+[dependencies]
+clap = "2.32.0"
+
+[profile.release]
+lto = true
