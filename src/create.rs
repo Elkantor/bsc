@@ -7,10 +7,11 @@ use std::fs::File;
 pub fn create_project(path: &str){
     initialize_git();
     create_main_cmakelists_file(path);
-    create_folder("src");
-    create_folder("test");
-    create_folder("include");
+    create_folder(&format!("{}{}", &path, "src".to_string()));
+    create_folder(&format!("{}{}", &path, "test".to_string()));
+    create_folder(&format!("{}{}", &path, "include".to_string()));
     create_folder("bsc_modules");
+    create_main_file(&format!("{}{}", &path, "src/".to_string()));
     println!("The project is correclty created.");
 }
 
@@ -64,5 +65,26 @@ pub fn create_folder(folder_path: &str){
     match fs::create_dir(folder_path){
         Err(e) => println!("Error occured when creating the \"{}\" folder. {}", &folder_path, e.description()),
         Ok(_) => println!("\"{}\" folder is correclty created.", &folder_path),
+    }
+}
+
+pub fn create_main_file(path: &str){
+    let final_path = "main.c".to_string();
+
+    let mut file = match File::create(format!("{}{}", &path, final_path)){
+        Err(why) => panic!("Error: couldn't create the main.c source file. {}", why.description()),
+        Ok(file) => file,
+    };
+
+    let main_file_content = 
+        "#include <stdio.h> \
+        \n\nint main(int argc, char* argv[]){ \
+        \n\tprintf(\"Running the project...\"); \
+        \n\treturn 0; \
+        \n}";
+
+    match file.write_all(main_file_content.as_bytes()){
+        Err(why) => println!("Error: couldn't write to {}: {}", format!("{}{}", &path, final_path), why.description()),
+        Ok(_) => println!("main.c source file is correclty created."),
     }
 }
