@@ -26,7 +26,7 @@ fn main() {
         .get_matches();
     
     match matches.subcommand_name() {
-        Some("create")  => create::create_project(),
+        Some("create")  => create::create_project("./"),
         Some("add")     => println!("'myapp add' was used"),
         Some("update")  => println!("The modules (dependencies) have been correclty updated."),
         None            => println!("No subcommand was used"),
