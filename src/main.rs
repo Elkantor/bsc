@@ -48,5 +48,5 @@ fn main() {
 
 fn create_new_project(path: &str, project_name: &str){
     create::create_project(&path, &project_name);
-    dependencies_handler::update_dependencies_file();
+    dependencies_handler::update_dependencies_file("", &path, &project_name);
 }
