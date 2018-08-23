@@ -1,3 +1,4 @@
+extern crate git2;
 use std::process::Command;
 use std::error::Error;
 use std::io::prelude::*;
@@ -6,7 +7,7 @@ use std::fs::File;
 
 pub fn create_project(path: &str, project_name: &str){
     println!("Project name: {}", &project_name);
-    initialize_git();
+    initialize_git(&path);
     create_main_cmakelists_file(path);
     create_folder(&format!("{}{}", &path, "src".to_string()));
     create_folder(&format!("{}{}", &path, "test".to_string()));
@@ -19,18 +20,10 @@ pub fn create_project(path: &str, project_name: &str){
     println!("The project is correclty created.");
 }
 
-pub fn initialize_git(){
-    if cfg!(target_os = "windows") {
-        Command::new("cmd")
-                .args(&["/C", "git init > nul"])
-                .output()
-                .expect("Failed to initialize the git repository.")
-    } else {
-        Command::new("sh")
-                .arg("-c")
-                .arg("git init > nul")
-                .output()
-                .expect("Failed to initialize the git repository.")
+pub fn initialize_git(path_repository: &str){
+    let repo = match git2::Repository::init(&path_repository.to_string()){
+        Err(why) => panic!("Error: failed to create the git repository. {}", why.description()),
+        Ok(repo) => repo,
     };
 
     println!("The git repository is correctly initialized.");
@@ -61,14 +54,14 @@ pub fn create_main_cmakelists_file(path: &str){
 
     match file.write_all(cmakelists_content.as_bytes()) {
         Err(why) => panic!("Error: couldn't write to {}: {}", format!("{}{}", &path, final_path), why.description()),
-        Ok(_) => println!("Main CMakeLists.txt file is correclty created."),
+        Ok(_) => (),
     }
 }
 
 pub fn create_folder(folder_path: &str){
     match fs::create_dir(folder_path){
         Err(e) => println!("Error occured when creating the \"{}\" folder. {}", &folder_path, e.description()),
-        Ok(_) => println!("\"{}\" folder is correclty created.", &folder_path),
+        Ok(_) => (),
     }
 }
 
@@ -87,14 +80,13 @@ pub fn create_main_file(path: &str, file_name: &str){
 
     match file.write_all(main_file_content.as_bytes()){
         Err(why) => println!("Error: couldn't write to {}: {}", format!("{}{}", &path, &file_name), why.description()),
-        Ok(_) => println!("{} source file is correclty created.", &file_name),
+        Ok(_) => (),
     }
 }
 
 pub fn create_secondary_cmakelists_file(path: &str, project_name: &str){
     let final_path = "CMakeLists.txt".to_string();
 
-    // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(format!("{}{}", &path, final_path)) {
         Err(why) => panic!("Error: couldn't create the secondary CMakeLists.txt file inside {}. {}", &path, why.description()),
         Ok(file) => file,
@@ -133,6 +125,6 @@ pub fn create_secondary_cmakelists_file(path: &str, project_name: &str){
     
     match file.write_all(secondary_cmakelists_content.as_bytes()) {
         Err(why) => panic!("Error: couldn't write to {}: {}", format!("{}{}", &path, final_path), why.description()),
-        Ok(_) => println!("Secondary CMakeLists.txt file is correclty created inside {}.", &path),
+        Ok(_) => (),
     }
 }

@@ -26,27 +26,19 @@ fn main() {
             .about("update the modules (dependencies) of the project"))
         .get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("create") {
-        // Safe to use unwrap() because of the required() option
-        println!("Create file: {}", matches.value_of("PROJECT_NAME").unwrap());
-    }
-    
-    // match matches.subcommand_name() {
-    //     Some("create")  => create::create_project("./", matches.value_of("PROJECT_NAME").unwrap()),
-    //     Some("add")     => println!("'myapp add' was used"),
-    //     Some("update")  => println!("The modules (dependencies) have been correclty updated."),
-    //     None            => println!("No subcommand was used"),
-    //     _               => println!("Some other subcommand was used"),
-    // }
-
     match matches.subcommand() {
-        ("create", Some(create_matches)) => create_new_project("./", create_matches.value_of("PROJECT_NAME").unwrap()),
+        ("create", Some(create_matches)) => create_project("./", create_matches.value_of("PROJECT_NAME").unwrap()),
+        ("add", Some(add_matches)) => add_dependency("./", add_matches.value_of("MODULE_URL").unwrap()),
         ("", None) => println!("No subcommand was used"), // If no subcommand was used it'll match the tuple ("", None)
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable!()
     }
 }
 
-fn create_new_project(path: &str, project_name: &str){
+fn create_project(path: &str, project_name: &str){
     create::create_project(&path, &project_name);
     dependencies_handler::update_dependencies_file("", &path, &project_name);
+}
+
+fn add_dependency(path: &str, project_url: &str){
+    
 }
