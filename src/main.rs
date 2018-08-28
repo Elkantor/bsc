@@ -19,8 +19,6 @@ fn main() {
         )  
         .subcommand(clap::SubCommand::with_name("add")
             .about("add a module to the project")
-            // .arg_from_usage("-g, --git 'Clones git repository'")
-            // .arg_from_usage("-l, --local 'Add local dependency'")
             .arg(clap::Arg::with_name("git")
                 .help("Clones git repository")
                 .short("g")
@@ -67,7 +65,6 @@ fn create_project(path: &str, project_name: &str){
 }
 
 fn add_dependency(path: &str, module_url: &str, git_repository: bool, local_repository: bool, web_repository: bool){
-    println!("Repository URL : {}", module_url);
     if git_repository {
         add::add_dependency(&path, &module_url, add::ModuleType::Git);
     } else if local_repository {
