@@ -4,7 +4,6 @@ use std::path;
 use std::error::Error;
 use std::io;
 use std::io::prelude::*;
-use std::io::BufReader;
 use std::io::BufRead;
 
 
@@ -48,6 +47,13 @@ pub fn copy_folder(folder_previous_path: &str, folder_destination_path: &str){
     }
 }
 
+pub fn rename_folder(folder_path: &str, folder_previous_name: &str, folder_new_name: &str){
+   match fs::rename(format!("{}{}", &folder_path, &folder_previous_name), format!("{}{}", &folder_path, &folder_new_name)){
+        Err(why) => panic!("Error: couldn't rename the {} folder. {}", format!("{}{}", &folder_path, folder_previous_name), why.description()),
+        Ok(_) => (),
+    }
+}
+
 pub fn create_file(file_path: &str, file_name: &str, file_content: &str){
     let mut file = match fs::File::create(format!("{}{}", &file_path, &file_name)) {
         Err(why) => panic!("Error: couldn't create the {} file. {}", format!("{}{}", &file_path, &file_name), why.description()),
@@ -70,6 +76,19 @@ pub fn get_file_content(file_path: &str, out_file_content: &mut Vec<u8>){
         Err(why) => panic!("{}", why.description()),
         Ok(_) => (),
     }
+}
+
+pub fn set_content_file(file_path: &str, file_content: &Vec<u8>){
+    let mut file = match fs::File::create(&file_path) {
+        Err(why) => panic!("Error: couldn't create the {} file. {}", &file_path, why.description()),
+        Ok(file) => file,
+    };
+
+    match file.write_all(file_content) {
+        Err(why) => panic!("Error: couldn't write to {}. {}", &file_path, why.description()),
+        Ok(_) => (),
+    }
+
 }
 
 pub fn get_module_name(module_path: &str, out_module_name: &mut String){
