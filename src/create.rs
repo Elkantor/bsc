@@ -68,9 +68,12 @@ pub fn create_secondary_cmakelists_file(path: &str, project_name: &str){
         \n\n## Add source files ## \
         \n\tfile (GLOB_RECURSE source_files ./*) \
         \n## End of adding source files ## \
+        \n\n## Remove main.c files of modules ## \
+        \n## End of removing main.c files of modules ## \
         \n\n## Add executables ## \
         \n\tadd_executable ({} ${{source_files}}) \
-        \n## End of adding executables ##", final_project_name, final_project_name);
+        \n## End of adding executables ##", 
+        final_project_name, final_project_name);
 
     if path.to_string().contains("test"){
         secondary_cmakelists_content = format!(
