@@ -47,6 +47,31 @@ pub fn copy_folder(folder_previous_path: &str, folder_destination_path: &str){
     }
 }
 
+pub fn move_content_folder(folder_path: &str, destination_path: &str){
+    let content_folder_paths = match fs::read_dir(&folder_path){
+        Err(why) => panic!("Error: couldn't get the content of the {} folder. {}", &folder_path, why.description()),
+        Ok(content_folder_paths) => content_folder_paths,
+    };
+
+    if content_folder_paths.size_hint() == (0, Some(0)) {
+        return;
+    }
+
+    for entry in content_folder_paths{
+        let content = match entry {
+            Err(why) => break,
+            Ok(content) => (content),       
+        };
+        let path = content.path();
+        let path_text = path.to_str().unwrap();
+        let folder_name = path.file_name().unwrap();
+        if path.is_dir() {
+            copy_folder(&path_text, &destination_path);
+            destroy_folder(&path_text);
+        }
+    }
+}
+
 pub fn rename_folder(folder_path: &str, folder_previous_name: &str, folder_new_name: &str){
    match fs::rename(format!("{}{}", &folder_path, &folder_previous_name), format!("{}{}", &folder_path, &folder_new_name)){
         Err(why) => panic!("Error: couldn't rename the {} folder. {}", format!("{}{}", &folder_path, folder_previous_name), why.description()),

@@ -23,9 +23,9 @@ pub fn create_project(path: &str, project_name: &str){
 }
 
 pub fn initialize_git(path_repository: &str){
-    let repo = match git2::Repository::init(&path_repository.to_string()){
+    match git2::Repository::init(&path_repository.to_string()){
         Err(why) => panic!("Error: failed to create the git repository. {}", why.description()),
-        Ok(repo) => repo,
+        Ok(_) => (),
     };
 
     println!("The git repository is correctly initialized.");

@@ -9,7 +9,7 @@ pub fn update_dependencies_file(project_url: &str, project_path: &str, project_n
         \n", &project_name, &project_url
     );
 
-    // To complete to update the dependencies (for each module inside bsc_modules folder).
+    // To complete
 
     common::create_file(&project_path, "dependencies.bsc", &content_dependencies_file);
 }

@@ -12,36 +12,39 @@ use std::io::BufRead;
 pub enum ModuleType {
     Local,
     Git,
-    Web,
-    Official
+    Web
 }
 
 /*************/
 /* FUNCTIONS */
 /*************/
 pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
-    let mut module_name = String::new();
-    module_name = "bsc_test_2".to_string();
+    // let mut module_name = String::new();
+
     // common::create_folder(&format!("{}/bsc_modules", &path));
     // common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
     // copy_module_to_tmp(&path, &module_url, module_type);
     // common::get_module_name(&format!("{}/bsc_modules/tmp/", &path), &mut module_name);
 
-    if check_already_added(&path, &format!("{}{}", "bsc_modules/", &module_name), &module_name){
-        println!("{} is already added to the project", console::style(&module_name).cyan());
-        common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
-        return;
-    }
+    // // Check if the module to add is already in the project dependencies
+    // if check_already_added(&path, &format!("{}{}", "bsc_modules/", &module_name)){
+    //     println!("{} is already added to the project", console::style(&module_name).cyan());
+    //     common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
+    //     return;
+    // }
 
     // common::rename_folder(&format!("{}{}", &path, "bsc_modules/"), "tmp", &module_name);
-    add_module_header_to_main_cmakelists_file(&path, &format!("{}{}", "bsc_modules/", &module_name), &module_name);
-    add_module_header_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &format!("{}{}{}", &path, "bsc_modules/", &module_name), &module_name);
-    println!("{} is correclty added to the project.", console::style(&module_name).cyan());
 
 
+    // let complete_module_path = &format!("{}{}{}", &path, "bsc_modules/", &module_name);
+    // add_module_headers_to_main_cmakelists_file(&path, &format!("{}{}", "bsc_modules/", &module_name));
+    // add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &complete_module_path, &module_name);
+    // add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &complete_module_path, &module_name);
+    // println!("{} is correclty added to the project.", console::style(&module_name).cyan());
+    common::move_content_folder("./test_2/", "./bsc_modules/");
 }
 
-pub fn check_already_added(path: &str, module_path: &str, module_name: &str) -> bool{
+pub fn check_already_added(path: &str, module_path: &str) -> bool{
     let mut file_content_lines = Vec::new();
     common::get_file_content(&format!("{}{}", &path, "CMakeLists.txt"), &mut file_content_lines);
 
@@ -62,9 +65,9 @@ pub fn check_already_added(path: &str, module_path: &str, module_name: &str) -> 
 pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType){
     match module_type {
         ModuleType::Git => {
-            let repo = match git2::Repository::clone(&module_url.to_string(), format!("{}/bsc_modules/tmp/", &path)){
-                Ok(repo) => repo,
+            match git2::Repository::clone(&module_url.to_string(), format!("{}/bsc_modules/tmp/", &path)){
                 Err(why) => panic!("Error: failed to clone {}.", why.description()),
+                Ok(_) => (),
             };
         },
         ModuleType::Local => {
@@ -74,7 +77,7 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
     }
 }
 
-pub fn add_module_header_to_main_cmakelists_file(path: &str, module_path: &str, module_name: &str){
+pub fn add_module_headers_to_main_cmakelists_file(path: &str, module_path: &str){
     let mut file_content_lines = Vec::new();
     common::get_file_content(&format!("{}{}", &path, "CMakeLists.txt"), &mut file_content_lines);
 
@@ -101,7 +104,7 @@ pub fn add_module_header_to_main_cmakelists_file(path: &str, module_path: &str, 
     common::set_content_file(&format!("{}{}", &path, "CMakeLists.txt"), &file_new_content_lines.into_bytes());
 }
 
-pub fn add_module_header_to_secondary_cmakelists_file(path: &str, module_path: &str, module_name: &str){
+pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_path: &str, module_name: &str){
     let mut file_content_lines = Vec::new();
     common::get_file_content(&format!("{}{}", &path, "CMakeLists.txt"), &mut file_content_lines);
 
@@ -162,5 +165,4 @@ pub fn add_module_header_to_secondary_cmakelists_file(path: &str, module_path: &
     }
 
     common::set_content_file(&format!("{}{}", &path, "CMakeLists.txt"), &file_new_content_lines.into_bytes());
-
 }
