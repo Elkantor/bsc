@@ -39,6 +39,7 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
 
 
     let complete_module_path = &format!("{}{}{}", &path, "bsc_modules/", &module_name);
+    common::copy_folder(&format!("{}bsc_modules/{}/include/", &path, &module_name), &format!("{}bsc_modules/{}/include/{}", &path, &module_name, &module_name));
     add_module_headers_to_main_cmakelists_file(&path, &format!("{}{}", "bsc_modules/", &module_name));
     add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &complete_module_path, &module_name);
     add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &complete_module_path, &module_name);
@@ -118,9 +119,9 @@ pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_
     for line in file_content_lines.lines(){
         let mut current_line = line.unwrap();
         if current_line.contains("## End of adding source files ##"){
-            if !previous_line.contains(&format!("file (GLOB_RECURSE {}_source_files ../bscxx_modules/{}/src/*)", &module_name, &module_name)){
+            if !previous_line.contains(&format!("file (GLOB_RECURSE {}_source_files ../bsc_modules/{}/src/*)", &module_name, &module_name)){
                 file_new_content_lines += &format!(
-                    "\n\tfile (GLOB_RECURSE {}_source_files ../bscxx_modules/{}/src/*)", 
+                    "\n\tfile (GLOB_RECURSE {}_source_files ../bsc_modules/{}/src/*)", 
                     &module_name,
                     &module_name
                 );
@@ -141,15 +142,14 @@ pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_
             }
         }
         if executable_line_passed{
-            let mut new_executable_line = String::new();
-            for c in current_line.chars(){
-                new_executable_line.push(c);
-                if c == '}' {
-                    new_executable_line += &format!(" ${{{}_source_files}})", &module_name);
-                    break;
-                }
+            let index_begin = match current_line.find(")"){
+                Some(value) => (value),
+                None => (0),
+            };
+            if index_begin != 0 { 
+                let new_executable_line = format!("{}{}{}", &current_line[0..index_begin], &format!(" ${{{}_source_files}})", &module_name), &current_line[index_begin+1..]);
+                current_line = new_executable_line;
             }
-            current_line = new_executable_line;
         }
         if current_line.contains("## Add executables ##"){
             if !module_already_added{
@@ -190,8 +190,10 @@ pub fn move_module_dependencies_to_parent_folder(path: &str, module_path: &str){
         common::rename_folder(&format!("{}{}", &path, "bsc_modules/"), &folder_name, &module_name);
         common::destroy_folder(&format!("{}/", &path_dependency_text));
         change_headers_file_from_main_cmakelists_file(&module_path, &module_name);
-        change_sources_files_from_secondary_cmakelists_file();
-        add_module_headers_to_main_cmakelists_file(&path, &format!("{}{}{}", &path, "bsc_modules/", &module_name));
+        change_sources_files_from_secondary_cmakelists_file(&module_path, &module_name);
+        common::copy_folder(&format!("{}bsc_modules/{}/include/", &path, &module_name), &format!("{}bsc_modules/{}/include/{}", &path, &module_name, &module_name));
+        add_module_headers_to_main_cmakelists_file(&path, &format!("{}{}", "bsc_modules/", &module_name));
+        add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &module_path, &module_name);
         move_module_dependencies_to_parent_folder(&path, &format!("{}bsc_modules/{}/", &path, &folder_name));
     }
 }
@@ -200,10 +202,8 @@ pub fn change_headers_file_from_main_cmakelists_file(module_path: &str, module_n
     let mut file_content_lines = Vec::new();
     let file_path = format!("{}{}", &module_path, "CMakeLists.txt");
     common::get_file_content(&file_path, &mut file_content_lines);
-    println!("content of file : {}", &file_path);
     let mut file_new_content_lines = String::new();
     let mut current_index_line = 0;
-    let mut previous_line = String::new();
 
     for line in file_content_lines.lines(){
         let mut current_line = line.unwrap();
@@ -224,6 +224,28 @@ pub fn change_headers_file_from_main_cmakelists_file(module_path: &str, module_n
     common::set_content_file(&file_path, &file_new_content_lines.into_bytes());
 }
 
-pub fn change_sources_files_from_secondary_cmakelists_file(){
+pub fn change_sources_files_from_secondary_cmakelists_file(module_path: &str, module_name: &str){
+    let mut file_content_lines = Vec::new();
+    let file_path = format!("{}src/CMakeLists.txt", &module_path);
+    common::get_file_content(&file_path, &mut file_content_lines);
+    let mut file_new_content_lines = String::new();
+    let mut current_index_line = 0;
 
+    for line in file_content_lines.lines(){
+        let mut current_line = line.unwrap();
+        if current_line.contains(&format!("file (GLOB_RECURSE {}_source_files ../bsc_modules/{}/src/*)", &module_name, &module_name)){
+            let index_begin = current_line.find("bsc_modules/").unwrap();
+            let new_line = format!("{}{}", &current_line[0..index_begin], &current_line[index_begin+12..]);
+            file_new_content_lines += &format!("\n{}", &new_line);
+            current_index_line += 1;
+            continue;
+        }
+        if current_index_line == 0{
+            file_new_content_lines += &String::from(current_line);
+        }else{
+            file_new_content_lines += &format!("\n{}", &current_line);
+        }
+        current_index_line += 1;
+    }
+    common::set_content_file(&file_path, &file_new_content_lines.into_bytes());
 }
