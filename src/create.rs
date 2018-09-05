@@ -1,7 +1,6 @@
 extern crate git2;
 #[path = "common.rs"] mod common;
 use std::error::Error;
-use std::path;
 
 
 /*************/

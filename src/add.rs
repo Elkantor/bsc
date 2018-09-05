@@ -1,6 +1,7 @@
 extern crate git2;
 extern crate console;
 #[path = "common.rs"] mod common;
+#[path = "dependencies_handler.rs"] mod dependencies_handler;
 use std::fs;
 use std::error::Error;
 use std::io::BufRead;
@@ -37,12 +38,22 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     common::rename_folder(&format!("{}{}", &path, "bsc_modules/"), "tmp", &module_name);
     move_module_dependencies_to_parent_folder(&path, &format!("{}bsc_modules/{}/", &path, &module_name));
 
-
-    let complete_module_path = &format!("{}{}{}", &path, "bsc_modules/", &module_name);
-    common::copy_folder(&format!("{}bsc_modules/{}/include/", &path, &module_name), &format!("{}bsc_modules/{}/include/{}", &path, &module_name, &module_name));
+    let module_version = "0.1.0";
+    let module_path = &format!("{}bsc_modules/{}/", &path, &module_name);
+    let headers_path = &format!("{}include/", &module_path);
+    common::copy_folder(&headers_path, &format!("{}/tmp_include/{}", &path, &module_name));
+    common::destroy_folder(&headers_path);
+    common::rename_folder(&path, "tmp_include", &headers_path);
     add_module_headers_to_main_cmakelists_file(&path, &format!("{}{}", "bsc_modules/", &module_name));
-    add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &complete_module_path, &module_name);
-    add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &complete_module_path, &module_name);
+    add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &module_name);
+    add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &module_name);
+
+    let mut headers: Vec<String> = Vec::new();
+    get_list_path_include_files(&format!("{}/include/", &module_path), &mut headers, &module_name);
+    change_include_path_in_sources_files(&module_path, &module_name, &headers);
+    change_include_path_in_headers_files(&module_path, &module_name, &headers);
+
+    dependencies_handler::add_module_to_dependencies_file(&path, &module_name, &module_version, &module_url);
     println!("{} is correclty added to the project.", console::style(&module_name).cyan());
 }
 
@@ -106,14 +117,13 @@ pub fn add_module_headers_to_main_cmakelists_file(path: &str, module_path: &str)
     common::set_content_file(&format!("{}{}", &path, "CMakeLists.txt"), &file_new_content_lines.into_bytes());
 }
 
-pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_path: &str, module_name: &str){
+pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_name: &str){
     let mut file_content_lines = Vec::new();
     common::get_file_content(&format!("{}{}", &path, "CMakeLists.txt"), &mut file_content_lines);
 
     let mut file_new_content_lines = String::new();
     let mut current_index_line = 0;
     let mut previous_line = String::new();
-    let mut module_already_added: bool = false;
     let mut executable_line_passed: bool = false;
 
     for line in file_content_lines.lines(){
@@ -126,20 +136,18 @@ pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_
                     &module_name
                 );
             }else{
-                module_already_added = true;
+                // Module already added, return
                 return;
             }
         }
         if current_line.contains("## End of removing main.c files of modules ##"){
-            if !module_already_added{
-                file_new_content_lines += &format!(
-                    "\n\tFOREACH(item ${{{}_source_files}}) \
-                    \n\t\tIF(${{item}} MATCHES \"main.c\") \
-                    \n\t\t\tLIST(REMOVE_ITEM {}_source_files ${{item}}) \
-                    \n\t\tENDIF(${{item}} MATCHES \"main.c\") \
-                    \n\tENDFOREACH(item)", &module_name, &module_name
-                );
-            }
+            file_new_content_lines += &format!(
+                "\n\tFOREACH(item ${{{}_source_files}}) \
+                \n\t\tIF(${{item}} MATCHES \"main.c\") \
+                \n\t\t\tLIST(REMOVE_ITEM {}_source_files ${{item}}) \
+                \n\t\tENDIF(${{item}} MATCHES \"main.c\") \
+                \n\tENDFOREACH(item)", &module_name, &module_name
+            );
         }
         if executable_line_passed{
             let index_begin = match current_line.find(")"){
@@ -152,9 +160,7 @@ pub fn add_module_sources_files_to_secondary_cmakelists_file(path: &str, module_
             }
         }
         if current_line.contains("## Add executables ##"){
-            if !module_already_added{
-                executable_line_passed = true;
-            }
+            executable_line_passed = true;
         }
         if current_index_line == 0{
             file_new_content_lines += &format!("{}", &current_line);
@@ -177,15 +183,18 @@ pub fn move_module_dependencies_to_parent_folder(path: &str, module_path: &str){
 
     for dependency_folder in module_dependencies{
         let content_dependency_folder = match dependency_folder {
-            Err(why) => break,
+            Err(_why) => break,
             Ok(content_dependency_folder) => (content_dependency_folder),       
         };
         let path_dependency = content_dependency_folder.path();
         let path_dependency_text = path_dependency.to_str().unwrap();
         let folder_name = str::replace(&format!("{:?}", &content_dependency_folder.file_name()), "\"", "");
         let mut module_name = String::new();
+        let mut module_url = String::new();
 
         common::get_module_name(&format!("{}/", &path_dependency_text), &mut module_name);
+        common::get_module_url(&format!("{}/", &path_dependency_text), &mut module_url);
+
         common::copy_folder(&format!("{}/", &path_dependency_text), &format!("{}{}", &path, "bsc_modules/"));
         common::rename_folder(&format!("{}{}", &path, "bsc_modules/"), &folder_name, &module_name);
         common::destroy_folder(&format!("{}/", &path_dependency_text));
@@ -193,7 +202,8 @@ pub fn move_module_dependencies_to_parent_folder(path: &str, module_path: &str){
         change_sources_files_from_secondary_cmakelists_file(&module_path, &module_name);
         common::copy_folder(&format!("{}bsc_modules/{}/include/", &path, &module_name), &format!("{}bsc_modules/{}/include/{}", &path, &module_name, &module_name));
         add_module_headers_to_main_cmakelists_file(&path, &format!("{}{}", "bsc_modules/", &module_name));
-        add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &module_path, &module_name);
+        add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &module_name);
+        dependencies_handler::add_module_to_dependencies_file(&path, &module_name, "0.1.0", &module_url);
         move_module_dependencies_to_parent_folder(&path, &format!("{}bsc_modules/{}/", &path, &folder_name));
     }
 }
@@ -248,4 +258,98 @@ pub fn change_sources_files_from_secondary_cmakelists_file(module_path: &str, mo
         current_index_line += 1;
     }
     common::set_content_file(&file_path, &file_new_content_lines.into_bytes());
+}
+
+pub fn change_include_path(file_path: &str, include_path_list: &Vec<String>, module_name: &str){
+    let mut file_content_lines = Vec::new();
+    common::get_file_content(&file_path, &mut file_content_lines);
+    let mut file_new_content_lines = String::new();
+    let mut current_index_line = 0;
+
+    for line in file_content_lines.lines(){
+        let mut current_line = line.unwrap();
+        if current_index_line > 0{
+            file_new_content_lines += &String::from("\n");
+        }
+
+        for header_path in include_path_list{
+            let alternative_header_path: String = String::from(header_path.replace("\\", "/"));
+            if current_line.contains(header_path) || current_line.contains(&alternative_header_path){
+                let index_begin = match current_line.find(header_path){
+                    None => current_line.find(&alternative_header_path).unwrap(),
+                    Some(index_begin) => index_begin,
+                };
+                let new_line = format!("#include \"{}/{}\"", &module_name, &alternative_header_path);
+                current_line = String::from(new_line);
+                current_index_line += 1;
+                break;
+            }
+        }
+        file_new_content_lines += &String::from(current_line);
+        current_index_line += 1;
+    }
+    common::set_content_file(&file_path, &file_new_content_lines.into_bytes());
+}
+
+pub fn get_list_path_include_files(include_folder_path: &str, out_list_headers_files: &mut Vec<String>, module_name: &str){
+    let headers = match fs::read_dir(&include_folder_path){
+        Err(why) => panic!("Error: couldn't get the content of the {} folder. {}", &include_folder_path, why.description()),
+        Ok(headers) => headers,
+    };
+
+    for entry in headers{
+        let file = match entry{
+            Err(_why) => break,
+            Ok(file) => file,
+        };
+        let path_file = file.path();
+        let path_file_text = path_file.to_str().unwrap();
+        if path_file.is_dir(){ 
+            get_list_path_include_files(path_file_text, out_list_headers_files, &module_name); 
+        }else{
+            let index_begin = path_file_text.find(&include_folder_path).unwrap();
+            let index_end = path_file_text.find("include").unwrap();
+            let final_header_path = &path_file_text[index_begin+index_end+8+module_name.len()+1..];
+            out_list_headers_files.push(final_header_path.to_string());
+        }
+    }
+}
+
+pub fn change_include_path_in_sources_files(module_path: &str, module_name: &str, list_headers_files: &Vec<String>){
+    let sources = match fs::read_dir(&format!("{}/src/", &module_path)){
+        Err(why) => panic!("Error: couldn't get the content of the {}/src/ folder. {}", &module_path, why.description()),
+        Ok(sources) => sources,
+    };
+
+    for entry in sources{
+        let file = match entry {
+            Err(_why) => break,
+            Ok(file) => (file),       
+        };
+        let path_file = file.path();
+        if !path_file.is_dir(){
+            let path_file_text = path_file.to_str().unwrap();
+            if path_file_text.contains("CMakeLists.txt") { continue; }
+            change_include_path(&path_file_text, &list_headers_files, &module_name);
+        }
+    }
+}
+
+pub fn change_include_path_in_headers_files(module_path: &str, module_name: &str, list_headers_files: &Vec<String>){
+    let headers = match fs::read_dir(&format!("{}/include/", &module_path)){
+        Err(why) => panic!("Error: couldn't get the content of the {}/include/ folder. {}", &module_path, why.description()),
+        Ok(headers) => headers,
+    };
+
+    for entry in headers{
+        let file = match entry {
+            Err(_why) => break,
+            Ok(file) => (file),       
+        };
+        let path_file = file.path();
+        if !path_file.is_dir(){
+            let path_file_text = path_file.to_str().unwrap();
+            change_include_path(&path_file_text, &list_headers_files, &module_name);
+        }
+    }
 }

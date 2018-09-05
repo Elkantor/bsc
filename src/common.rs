@@ -2,7 +2,6 @@ extern crate fs_extra;
 use std::fs;
 use std::path;
 use std::error::Error;
-use std::io;
 use std::io::prelude::*;
 use std::io::BufRead;
 
@@ -107,6 +106,25 @@ pub fn get_module_name(module_path: &str, out_module_name: &mut String){
             let index_begin = current_line.find("[").unwrap();
             let index_end = current_line.find("]").unwrap();
             *out_module_name = current_line[index_begin+1..index_end].to_string(); 
+            return;
+        }
+    }
+}
+
+pub fn get_module_url(module_path: &str, out_module_url: &mut String){
+    let mut file_content = Vec::new();
+    get_file_content(&format!("{}{}", &module_path, "dependencies.bsc"), &mut file_content);
+
+    let mut url_line_founded: bool = false;
+    for line in file_content.lines(){
+        let current_line = line.unwrap();
+        if !url_line_founded{
+            if current_line.contains("BSC_PROJECT:"){
+                url_line_founded = true;
+            }
+        }else{
+            let index_begin = current_line.find("|").unwrap();
+            *out_module_url = current_line[index_begin+1..].to_string();
             return;
         }
     }
