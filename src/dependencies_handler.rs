@@ -22,7 +22,7 @@ pub fn add_module_to_dependencies_file(project_path: &str, module_name: &str, mo
 
     let mut file_new_content_lines = String::new();
     let mut current_index_line = 0;
-    let module_line = &format!("[{}]:^{}\t|\t{}", &module_name, &module_version, &module_url);
+    let module_line = &format!("\t[{}]:^{}\t|\t{}", &module_name, &module_version, &module_url);
 
     for line in file_content_lines.lines(){
         let mut current_line = line.unwrap();

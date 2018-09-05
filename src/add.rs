@@ -41,6 +41,7 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     let module_version = "0.1.0";
     let module_path = &format!("{}bsc_modules/{}/", &path, &module_name);
     let headers_path = &format!("{}include/", &module_path);
+    let sources_path = &format!("{}src/", &module_path);
     common::copy_folder(&headers_path, &format!("{}/tmp_include/{}", &path, &module_name));
     common::destroy_folder(&headers_path);
     common::rename_folder(&path, "tmp_include", &headers_path);
@@ -49,9 +50,9 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     add_module_sources_files_to_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &module_name);
 
     let mut headers: Vec<String> = Vec::new();
-    get_list_path_include_files(&format!("{}/include/", &module_path), &mut headers, &module_name);
-    change_include_path_in_sources_files(&module_path, &module_name, &headers);
-    change_include_path_in_headers_files(&module_path, &module_name, &headers);
+    get_list_path_include_files(&headers_path, &mut headers, &module_name);
+    change_include_path_in_sources_files(&sources_path, &module_name, &headers);
+    change_include_path_in_headers_files(&headers_path, &module_name, &headers);
 
     dependencies_handler::add_module_to_dependencies_file(&path, &module_name, &module_version, &module_url);
     println!("{} is correclty added to the project.", console::style(&module_name).cyan());
@@ -275,10 +276,6 @@ pub fn change_include_path(file_path: &str, include_path_list: &Vec<String>, mod
         for header_path in include_path_list{
             let alternative_header_path: String = String::from(header_path.replace("\\", "/"));
             if current_line.contains(header_path) || current_line.contains(&alternative_header_path){
-                let index_begin = match current_line.find(header_path){
-                    None => current_line.find(&alternative_header_path).unwrap(),
-                    Some(index_begin) => index_begin,
-                };
                 let new_line = format!("#include \"{}/{}\"", &module_name, &alternative_header_path);
                 current_line = String::from(new_line);
                 current_index_line += 1;
@@ -315,9 +312,9 @@ pub fn get_list_path_include_files(include_folder_path: &str, out_list_headers_f
     }
 }
 
-pub fn change_include_path_in_sources_files(module_path: &str, module_name: &str, list_headers_files: &Vec<String>){
-    let sources = match fs::read_dir(&format!("{}/src/", &module_path)){
-        Err(why) => panic!("Error: couldn't get the content of the {}/src/ folder. {}", &module_path, why.description()),
+pub fn change_include_path_in_sources_files(folder_path: &str, module_name: &str, list_headers_files: &Vec<String>){
+    let sources = match fs::read_dir(&folder_path){
+        Err(why) => panic!("Error: couldn't get the content of the {}/src/ folder. {}", &folder_path, why.description()),
         Ok(sources) => sources,
     };
 
@@ -327,17 +324,19 @@ pub fn change_include_path_in_sources_files(module_path: &str, module_name: &str
             Ok(file) => (file),       
         };
         let path_file = file.path();
+        let path_file_text = path_file.to_str().unwrap();
         if !path_file.is_dir(){
-            let path_file_text = path_file.to_str().unwrap();
             if path_file_text.contains("CMakeLists.txt") { continue; }
             change_include_path(&path_file_text, &list_headers_files, &module_name);
+        }else{
+            change_include_path_in_sources_files(&path_file_text, &module_name, &list_headers_files);
         }
     }
 }
 
-pub fn change_include_path_in_headers_files(module_path: &str, module_name: &str, list_headers_files: &Vec<String>){
-    let headers = match fs::read_dir(&format!("{}/include/", &module_path)){
-        Err(why) => panic!("Error: couldn't get the content of the {}/include/ folder. {}", &module_path, why.description()),
+pub fn change_include_path_in_headers_files(folder_path: &str, module_name: &str, list_headers_files: &Vec<String>){
+    let headers = match fs::read_dir(&folder_path){
+        Err(why) => panic!("Error: couldn't get the content of the {}/include/ folder. {}", &folder_path, why.description()),
         Ok(headers) => headers,
     };
 
@@ -347,9 +346,11 @@ pub fn change_include_path_in_headers_files(module_path: &str, module_name: &str
             Ok(file) => (file),       
         };
         let path_file = file.path();
+        let path_file_text = path_file.to_str().unwrap();
         if !path_file.is_dir(){
-            let path_file_text = path_file.to_str().unwrap();
             change_include_path(&path_file_text, &list_headers_files, &module_name);
+        }else{
+            change_include_path_in_headers_files(&path_file_text, &module_name, &list_headers_files);
         }
     }
 }
