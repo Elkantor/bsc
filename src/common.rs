@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 extern crate fs_extra;
 use std::fs;
 use std::path;

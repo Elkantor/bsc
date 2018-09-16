@@ -10,19 +10,19 @@ pub fn create_project(path: &str, project_name: &str){
     println!("Project name: {}", &project_name);
     initialize_git(&path);
     create_main_cmakelists_file(path);
-    common::create_folder(&format!("{}{}", &path, "src".to_string()));
-    common::create_folder(&format!("{}{}", &path, "test".to_string()));
-    common::create_folder(&format!("{}{}", &path, "include".to_string()));
+    common::create_folder(&format!("{}{}", &path, "src"));
+    common::create_folder(&format!("{}{}", &path, "test"));
+    common::create_folder(&format!("{}{}", &path, "include"));
     common::create_folder("bsc_modules");
-    create_main_file(&format!("{}{}", &path, "src/".to_string()), &"main.c".to_string());
-    create_main_file(&format!("{}{}", &path, "test/".to_string()), &"test.c".to_string());
-    create_secondary_cmakelists_file(&format!("{}{}", &path, "src/".to_string()), &project_name);
-    create_secondary_cmakelists_file(&format!("{}{}", &path, "test/".to_string()), &project_name);
+    create_main_file(&format!("{}{}", &path, "src/")), &"main.c");
+    create_main_file(&format!("{}{}", &path, "test/"), &"test.c");
+    create_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &project_name);
+    create_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &project_name);
     println!("The project is correclty created.");
 }
 
 pub fn initialize_git(path_repository: &str){
-    match git2::Repository::init(&path_repository.to_string()){
+    match git2::Repository::init(&path_repository){
         Err(why) => panic!("Error: failed to create the git repository. {}", why.description()),
         Ok(_) => (),
     };
