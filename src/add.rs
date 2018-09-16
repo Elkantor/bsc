@@ -1,5 +1,6 @@
 extern crate git2;
 extern crate console;
+extern crate curl;
 #[path = "common.rs"] mod common;
 #[path = "dependencies_handler.rs"] mod dependencies_handler;
 use std::fs;
@@ -14,7 +15,7 @@ use std::io::BufRead;
 pub enum ModuleType {
     Local,
     Git,
-    Web
+    Zip
 }
 
 /*************/
@@ -86,6 +87,23 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
         },
         ModuleType::Local => {
             common::copy_folder(&module_url, &format!("{}/bsc_modules/tmp", &path));
+        },
+        ModuleType::Zip => {
+            common::create_folder(&format!("{}/bsc_modules/tmp", &path));
+            let mut easy = curl::easy::Easy::new();
+            let mut dst = Vec::new();
+            easy.url(&module_url).unwrap();
+            {
+                let mut transfer = easy.transfer();
+                transfer.write_function(|data| {
+                    dst.extend_from_slice(data);
+                    Ok(data.len())
+                }).unwrap();
+                transfer.perform().unwrap();
+            }
+            let dst2 = dst.to_vec();
+            println!("size ? {}", dst2.len());
+            common::set_content_file(&format!("{}/bsc_modules/tmp/test.zip", &path), &dst2);
         },
         _ => unreachable!(),
     }

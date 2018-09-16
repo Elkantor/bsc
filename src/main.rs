@@ -33,10 +33,10 @@ fn main() {
                 .multiple(true)
                 .requires("MODULE_URL")
             )
-            .arg(clap::Arg::with_name("web")
+            .arg(clap::Arg::with_name("zip")
                 .help("For an online module")
-                .short("web")
-                .long("web")
+                .short("zip")
+                .long("zip")
                 .multiple(true)
                 .requires("MODULE_URL")
             )
@@ -53,7 +53,7 @@ fn main() {
 
     match matches.subcommand() {
         ("create", Some(create_matches)) => create_project("./", create_matches.value_of("PROJECT_NAME").unwrap()),
-        ("add", Some(add_matches)) => add_dependency("./", add_matches.value_of("MODULE_URL").unwrap(), add_matches.is_present("git"), add_matches.is_present("local"), add_matches.is_present("web")),
+        ("add", Some(add_matches)) => add_dependency("./", add_matches.value_of("MODULE_URL").unwrap(), add_matches.is_present("git"), add_matches.is_present("local"), add_matches.is_present("zip")),
         ("", None) => println!("No subcommand was used"), // If no subcommand was used it'll match the tuple ("", None)
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable!()
     }
@@ -64,14 +64,14 @@ fn create_project(path: &str, project_name: &str){
     dependencies_handler::update_dependencies_file("", &path, &project_name);
 }
 
-fn add_dependency(path: &str, module_url: &str, git_repository: bool, local_repository: bool, web_repository: bool){
+fn add_dependency(path: &str, module_url: &str, git_repository: bool, local_repository: bool, zip_repository: bool){
     if git_repository {
         add::add_dependency(&path, &module_url, add::ModuleType::Git);
     } else if local_repository {
         add::add_dependency(&path, &module_url, add::ModuleType::Local);
-    } else if web_repository {
-        add::add_dependency(&path, &module_url, add::ModuleType::Web);
+    } else if zip_repository {
+        add::add_dependency(&path, &module_url, add::ModuleType::Zip);
     } else {
-        println!("Error: the module is neither a local, a git, or a web repository.");
+        println!("Error: the module is neither a local, a git, or a zip url.");
     }
 }

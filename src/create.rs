@@ -14,7 +14,7 @@ pub fn create_project(path: &str, project_name: &str){
     common::create_folder(&format!("{}{}", &path, "test"));
     common::create_folder(&format!("{}{}", &path, "include"));
     common::create_folder("bsc_modules");
-    create_main_file(&format!("{}{}", &path, "src/")), &"main.c");
+    create_main_file(&format!("{}{}", &path, "src/"), &"main.c");
     create_main_file(&format!("{}{}", &path, "test/"), &"test.c");
     create_secondary_cmakelists_file(&format!("{}{}", &path, "src/"), &project_name);
     create_secondary_cmakelists_file(&format!("{}{}", &path, "test/"), &project_name);
