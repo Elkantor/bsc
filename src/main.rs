@@ -35,7 +35,7 @@ fn main() {
             )
             .arg(clap::Arg::with_name("zip")
                 .help("For an online module")
-                .short("zip")
+                .short("z")
                 .long("zip")
                 .multiple(true)
                 .requires("MODULE_URL")

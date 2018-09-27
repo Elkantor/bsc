@@ -131,3 +131,10 @@ pub fn get_module_url(module_path: &str, out_module_url: &mut String){
         }
     }
 }
+
+pub fn check_dependencies_file(module_path: &str) -> bool {
+    if !(path::Path::new(&format!("{}{}", &module_path, "dependencies.bsc")).exists()){
+        return false;
+    }
+    return true;
+}

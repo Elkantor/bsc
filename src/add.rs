@@ -27,6 +27,13 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     common::create_folder(&format!("{}/bsc_modules", &path));
     common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
     copy_module_to_tmp(&path, &module_url, module_type);
+
+    // check if it's a valid bsc module
+    if !common::check_dependencies_file(&format!("{}/bsc_modules/tmp/", &path)){
+        common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
+        panic!("Error: you are trying to add a not valid bsc module to the project.");
+    }
+
     common::get_module_name(&format!("{}/bsc_modules/tmp/", &path), &mut module_name);
 
     // Check if the module to add is already in the project dependencies
@@ -102,7 +109,6 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
                 transfer.perform().unwrap();
             }
             let dst2 = dst.to_vec();
-            println!("size ? {}", dst2.len());
             common::set_content_file(&format!("{}/bsc_modules/tmp/test.zip", &path), &dst2);
         },
         _ => unreachable!(),
