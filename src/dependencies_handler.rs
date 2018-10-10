@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[path = "common.rs"] mod common;
 use std::io::BufRead;
 

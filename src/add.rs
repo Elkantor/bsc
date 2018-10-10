@@ -1,11 +1,14 @@
 extern crate git2;
 extern crate console;
 extern crate curl;
+extern crate zip;
 #[path = "common.rs"] mod common;
 #[path = "dependencies_handler.rs"] mod dependencies_handler;
 use std::fs;
 use std::error::Error;
+use std::io;
 use std::io::BufRead;
+use std::path::PathBuf;
 
 
 /*********/
@@ -28,7 +31,7 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
     copy_module_to_tmp(&path, &module_url, module_type);
 
-    // check if it's a valid bsc module
+    // Check if it's a valid bsc module
     if !common::check_dependencies_file(&format!("{}/bsc_modules/tmp/", &path)){
         common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
         panic!("Error: you are trying to add a not valid bsc module to the project.");
@@ -87,16 +90,16 @@ pub fn check_already_added(path: &str, module_path: &str) -> bool{
 pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType){
     match module_type {
         ModuleType::Git => {
-            match git2::Repository::clone(&module_url.to_string(), format!("{}/bsc_modules/tmp/", &path)){
+            match git2::Repository::clone(&module_url.to_string(), format!("{}bsc_modules/tmp/", &path)){
                 Err(why) => panic!("Error: failed to clone {}.", why.description()),
                 Ok(_) => (),
             };
         },
         ModuleType::Local => {
-            common::copy_folder(&module_url, &format!("{}/bsc_modules/tmp", &path));
+            common::copy_folder(&module_url, &format!("{}bsc_modules/tmp", &path));
         },
         ModuleType::Zip => {
-            common::create_folder(&format!("{}/bsc_modules/tmp", &path));
+            common::create_folder(&format!("{}bsc_modules/tmp", &path));
             let mut easy = curl::easy::Easy::new();
             let mut dst = Vec::new();
             easy.url(&module_url).unwrap();
@@ -108,8 +111,42 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
                 }).unwrap();
                 transfer.perform().unwrap();
             }
-            let dst2 = dst.to_vec();
-            common::set_content_file(&format!("{}/bsc_modules/tmp/test.zip", &path), &dst2);
+            common::set_content_file(&format!("{}bsc_modules/tmp/test.zip", &path), &dst);
+
+            let file = fs::File::open(format!("{}bsc_modules/tmp/test.zip", &path)).unwrap();
+            let mut archive = zip::ZipArchive::new(file).unwrap();
+            let mut folder_path = String::new();
+            for i in 0..archive.len() {
+                let mut file = archive.by_index(i).unwrap();
+                if i == 0 {
+                    folder_path = file.sanitized_name().into_os_string().into_string().unwrap();
+                }
+                let mut outpath = PathBuf::from(format!("{}{}", &path, "bsc_modules/tmp/"));
+                outpath.push(file.sanitized_name());
+                {
+                    let comment = file.comment();
+                    if !comment.is_empty() {
+                        println!("File {} comment: {}", i, comment);
+                    }
+                }
+
+                if (&*file.name()).ends_with('/') {
+                    println!("File {} extracted to \"{}\"", i, outpath.as_path().display());
+                    fs::create_dir_all(&outpath).unwrap();
+                }else{
+                    println!("File {} extracted to \"{}\" ({} bytes)", i, outpath.as_path().display(), file.size());
+                    if let Some(p) = outpath.parent() {
+                        if !p.exists() {
+                            fs::create_dir_all(&p).unwrap();
+                        }
+                    }
+                    let mut outfile = fs::File::create(&outpath).unwrap();
+                    io::copy(&mut file, &mut outfile).unwrap();
+                }
+            }
+            common::delete_file(&format!("{}bsc_modules/tmp/test.zip", &path));
+            common::move_folder_content_to_parent_folder(&format!("{}bsc_modules/tmp/{}", &path, folder_path));
+            common::destroy_folder(&format!("{}bsc_modules/tmp/{}", &path, folder_path));
         },
         _ => unreachable!(),
     }
