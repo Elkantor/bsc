@@ -102,6 +102,7 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
             common::create_folder(&format!("{}bsc_modules/tmp", &path));
             let mut easy = curl::easy::Easy::new();
             let mut dst = Vec::new();
+            // Get the zip file using the curl crate
             easy.url(&module_url).unwrap();
             {
                 let mut transfer = easy.transfer();
@@ -111,8 +112,10 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
                 }).unwrap();
                 transfer.perform().unwrap();
             }
-            common::set_content_file(&format!("{}bsc_modules/tmp/test.zip", &path), &dst);
-
+            // Copy the content of the dst vector inside the tmp/test.zip file
+            common::set_content_file(&format!("{}bsc_modules/tmp/test.zip", &path), &dst);          
+           
+            // Extract the test.zip file using the zip crate
             let file = fs::File::open(format!("{}bsc_modules/tmp/test.zip", &path)).unwrap();
             let mut archive = zip::ZipArchive::new(file).unwrap();
             let mut folder_path = String::new();
@@ -134,7 +137,7 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
                     println!("File {} extracted to \"{}\"", i, outpath.as_path().display());
                     fs::create_dir_all(&outpath).unwrap();
                 }else{
-                    println!("File {} extracted to \"{}\" ({} bytes)", i, outpath.as_path().display(), file.size());
+                             println!("File {} extracted to \"{}\" ({} bytes)", i, outpath.as_path().display(), file.size());
                     if let Some(p) = outpath.parent() {
                         if !p.exists() {
                             fs::create_dir_all(&p).unwrap();
