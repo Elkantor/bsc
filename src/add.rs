@@ -14,7 +14,6 @@ use std::path::PathBuf;
 /*********/
 /* ENUMS */
 /*********/
-
 pub enum ModuleType {
     Local,
     Git,
@@ -26,6 +25,7 @@ pub enum ModuleType {
 /*************/
 pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     let mut module_name = String::new();
+    let mut module_version = String::new();
 
     common::create_folder(&format!("{}/bsc_modules", &path));
     common::destroy_folder(&format!("{}/bsc_modules/tmp", &path));
@@ -37,8 +37,15 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
         panic!("Error: you are trying to add a not valid bsc module to the project.");
     }
 
-    common::get_module_name(&format!("{}/bsc_modules/tmp/", &path), &mut module_name);
+    // common::get_module_name(&format!("{}/bsc_modules/tmp/", &path), &mut module_name);
+    // common::get_module_version(&format!("{}bsc_modules/tmp/", path), &mut module_version);
 
+    common::get_module_properties(
+        &format!("{}bsc_modules/tmp/", &path),
+        &mut module_name,
+        &mut module_version
+    );
+    
     // Check if the module to add is already in the project dependencies
     if check_already_added(&path, &format!("{}{}", "bsc_modules/", &module_name)){
         println!("{} is already added to the project", console::style(&module_name).cyan());
@@ -49,7 +56,6 @@ pub fn add_dependency(path: &str, module_url: &str, module_type: ModuleType){
     common::rename_folder(&format!("{}{}", &path, "bsc_modules/"), "tmp", &module_name);
     move_module_dependencies_to_parent_folder(&path, &format!("{}bsc_modules/{}/", &path, &module_name));
 
-    let module_version = "0.1.0";
     let module_path = &format!("{}bsc_modules/{}/", &path, &module_name);
     let headers_path = &format!("{}include/", &module_path);
     let sources_path = &format!("{}src/", &module_path);
@@ -148,8 +154,6 @@ pub fn copy_module_to_tmp(path: &str, module_url: &str, module_type: ModuleType)
                 }
             }
             common::delete_file(&format!("{}bsc_modules/tmp/test.zip", &path));
-            common::move_folder_content_to_parent_folder(&format!("{}bsc_modules/tmp/{}", &path, folder_path));
-            common::destroy_folder(&format!("{}bsc_modules/tmp/{}", &path, folder_path));
         },
         _ => unreachable!(),
     }

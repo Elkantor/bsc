@@ -166,6 +166,34 @@ pub fn get_module_name(module_path: &str, out_module_name: &mut String){
     }
 }
 
+pub fn get_module_properties(
+    module_path: &str, 
+    out_module_name: &mut String, 
+    out_module_version: &mut String
+){
+    let mut file_content = Vec::new();
+    get_file_content(&format!("{}{}", &module_path, "dependencies.bsc"), &mut file_content);
+
+    let mut properties_founded: bool = false;
+    for line in file_content.lines() {
+        let current_line = line.unwrap();
+        if !properties_founded{
+            if current_line.contains("BSC_PROJECT:") {
+                properties_founded = true;
+            }
+        }else{
+            let index_begin_name = current_line.find("[").unwrap();
+            let index_end_name = current_line.find("]").unwrap();
+            *out_module_name = current_line[index_begin_name+1..index_end_name].to_string(); 
+            
+            let index_begin_version = index_end_name + 3;
+            let index_end_version = current_line.find("|").unwrap() - 1;
+            *out_module_version = current_line[index_begin_version..index_end_version].to_string();
+            return;
+        }
+    }
+}
+
 pub fn get_module_url(module_path: &str, out_module_url: &mut String){
     let mut file_content = Vec::new();
     get_file_content(&format!("{}{}", &module_path, "dependencies.bsc"), &mut file_content);
