@@ -9,6 +9,7 @@ use std::error::Error;
 pub fn create_project(path: &str, project_name: &str){
     println!("Project name: {}", &project_name);
     initialize_git(&path);
+    create_gitignore(&path);
     create_main_cmakelists_file(path);
     common::create_folder(&format!("{}{}", &path, "src"));
     common::create_folder(&format!("{}{}", &path, "test"));
@@ -28,6 +29,18 @@ pub fn initialize_git(path_repository: &str){
     };
 
     println!("The git repository is correctly initialized.");
+}
+
+pub fn create_gitignore(path: &str){
+    let gitignore_content = 
+        "buid\n\
+        build/\n\
+        build/*\n\
+        bsc_modules\n\
+        bsc_modules/\n\
+        bsc_modules/*\n";
+
+    common::create_file(&path, ".gitignore", &gitignore_content);
 }
 
 pub fn create_main_cmakelists_file(path: &str){
